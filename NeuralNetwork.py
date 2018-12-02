@@ -6,13 +6,10 @@ def initArrZero(num):
 		l.append(0)
 	return l
 	
-def initMatrix(rows,cols,increment):
+def initMatrix(rows,cols):
 	m = []
 	for i in range(rows):
 		m.append(initArrZero(cols))
-	if increment:
-		for i in range(rows):
-			m[i].append(0)
 	return m	
 	
 def sigmoid(x):
@@ -20,8 +17,10 @@ def sigmoid(x):
 	
 def sigmoid_m(x):
 	if isinstance(x,list):
+		lst = []
 		for i in x:
-			return sigmoid_m(x)
+			lst.append(sigmoid_m(i))
+		return lst
 	else:
 		return sigmoid(x)
 	
@@ -30,8 +29,10 @@ def sigmoid_prime(x):
 	
 def sigmoid_prime_m(x):
 	if isinstance(x,list):
+		lst = []
 		for i in x:
-			return sigmoid_prime_m(x)
+			lst.append(sigmoid_prime_m(i))
+		return lst
 	else:
 		return sigmoid_prime(x)
 		
@@ -39,9 +40,12 @@ def transpose(m):
 	return [[m[j][i] for j in range(len(m))] for i in range(len(m[0]))]
 	
 def matmul(A,B):
-	return [[sum(a * b for a, b in zip(A_row, B_col))  
-			B_col in zip(*B)] 
-				for A_row in A]
+	result = initMatrix(len(A),len(B[0]))
+	for i in range(len(A)):  
+		for j in range(len(B[0])): 
+			for k in range(len(B)): 
+				result[i][j] += A[i][k] * B[k][j]
+	return result
 	
 def matadd(X,Y):
 	result = copy.deepcopy(X)
@@ -57,7 +61,25 @@ def hadamard(X,Y):
 			result[i][j] = X[i][j] * Y[i][j]
 	return result
 	
+def scalarmul(A,B):
+	if isinstance(A,list) and (isinstance(B,float) or isinstance(B,int)):
+		return scalarmul(B,A)
+	if isinstance(B,list):
+		lst = []
+		for i in B:
+			lst.append(scalarmul(A,i))
+		return lst
+	return A*B
 	
+def subtract(A,B):
+	if isinstance(A,list) and isinstance(B,list) and len(A)==len(B):
+		lst = []
+		for i in range(len(A)):
+			lst.append(subtract(A[i],B[i]))
+		return lst
+	else:
+		return A-B
+		
 class NN:
 	def __init__(self,arr):
 		assert len(arr)>1
@@ -67,38 +89,52 @@ class NN:
 		self.layers = []
 		self.layers.append(input)
 		for i in range(1,l-1):
-			lst = initArrZero(arr[i]+1)
-			lst[-1] = 1
+			lst = initArrZero(arr[i])
 			self.layers.append(lst)
 		self.layers.append(initArrZero(arr[-1]))
 		
 		self.weights = []
 		for i in range(l-1):
-			w = initMatrix(arr[i]+1,arr[i+1],i!=l-2)
+			w = initMatrix(len(self.layers[i]),len(self.layers[i+1]))
 			self.weights.append(w)
-
-		for i in range(len(self.layers)):
-			print self.layers[i]
-		
-		for i in range(len(self.weights)):
-			print self.weights[i]
 			
 	def feedforward(self):
 		for i in range(1,len(self.layers)):
-			self.layers[i] = sigmoid_m(matmul(transpose(self.weights[i]),self.layers[i-1]))
+			self.layers[i] = sigmoid_m(matmul(transpose(self.weights[i-1]),self.layers[i-1]))
 		
 	def backprop(self,actual,alpha):
-		self.wd = []
-		last = hadamard((self.layers[-1] - actual),sigmoid_prime_m(self.layers[-1]))
+		self.wd = initArrZero(len(self.weights))
+		last = hadamard(subtract(self.layers[-1],actual),sigmoid_prime_m(self.layers[-1]))
 		for i in range(len(self.weights)-1,-1,-1):
 			if i == len(self.weights)-1:
 				self.wd[i] = last
 			else:
 				self.wd[i] = matmul(transpose(self.weights[i+1]),self.wd[i-1])
 		for i in range(len(self.weights)-1,-1,-1):
-			self.wd[i] = matmul(self.wd[i],transpose(self.layers[i-1]))
+			t = transpose(self.layers[i])
+			self.wd[i] = matmul(self.wd[i],t)
 			
-		self.weights = matadd(self.weights,self.wd)
+		for i in range(len(self.weights)-1,-1,-1):
+			self.weights[i] = matadd(self.weights[i],transpose(scalarmul(alpha,self.wd[i])))
 		
-NN([3,4,2])
+	def show(self):
+		print "Layers : "
+		for p in self.layers:
+			print p
 		
+		print "\n\n\n"
+		
+		print "Weights : "
+		for i in range(len(self.weights)):
+			print self.weights[i]
+			
+		print "\n\n\n"
+		
+n = NN([2,2,2])
+n.layers[0] = [[0.05],[0.1],[1]]
+n.weights[0] = [[0.15,0.25],[0.2,0.3],[0.35,0.6]]
+n.weights[1] = [[0.4,0.5],[0.45,0.55]]
+n.feedforward()
+n.show()
+n.backprop([[0.01],[0.99]],0.001)
+n.show()
