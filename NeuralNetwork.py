@@ -99,24 +99,26 @@ class NN:
 			self.weights.append(w)
 			
 	def feedforward(self):
-		for i in range(1,len(self.layers)):
-			self.layers[i] = sigmoid_m(matmul(transpose(self.weights[i-1]),self.layers[i-1]))
+		for i in range(0,len(self.layers)-1):
+		    self.layers[i+1] = sigmoid_m(matmul(self.weights[i],self.layers[i]))
 		
 	def backprop(self,actual,alpha):
-		self.wd = initArrZero(len(self.weights))
-		last = hadamard(subtract(self.layers[-1],actual),sigmoid_prime_m(self.layers[-1]))
-		for i in range(len(self.weights)-1,-1,-1):
-			if i == len(self.weights)-1:
-				self.wd[i] = last
-			else:
-				self.wd[i] = matmul(transpose(self.weights[i+1]),self.wd[i-1])
-		for i in range(len(self.weights)-1,-1,-1):
-			t = transpose(self.layers[i])
-			self.wd[i] = matmul(self.wd[i],t)
-			
-		for i in range(len(self.weights)-1,-1,-1):
-			self.weights[i] = matadd(self.weights[i],transpose(scalarmul(alpha,self.wd[i])))
-		
+	    self.wd = initArrZero(len(self.weights))
+	    self.wdm = initArrZero(len(self.weights))
+	    
+	    for i in range(len(self.weights)-1,-1,-1):
+	        if i == len(self.weights)-1:
+	            self.wd[i] = hadamard(subtract(self.layers[-1],actual),sigmoid_prime_m(matmul(self.weights[-1],self.layers[-2])))
+	        else:
+	            self.wd[i] = hadamard(matmul(transpose(self.weights[i+1]),self.wd[i+1]),sigmoid_prime_m(matmul(self.weights[i],self.layers[i])))
+	            
+	    for i in range(len(self.weights)-1,-1,-1):
+	        t = transpose(self.layers[i])
+	        self.wdm[i] = matmul(self.wd[i],t)
+	        
+	    for i in range(len(self.weights)-1,-1,-1):
+	        self.weights[i] = matadd(self.weights[i],hadamard(scalarmul(-1*alpha,self.weights[i]),self.wdm[i]))
+	    
 	def show(self):
 		print "Layers : "
 		for p in self.layers:
@@ -132,9 +134,10 @@ class NN:
 		
 n = NN([2,2,2])
 n.layers[0] = [[0.05],[0.1],[1]]
-n.weights[0] = [[0.15,0.25],[0.2,0.3],[0.35,0.6]]
-n.weights[1] = [[0.4,0.5],[0.45,0.55]]
-n.feedforward()
+n.weights[0] = transpose([[0.15,0.25],[0.2,0.3],[0.35,0.6]])
+n.weights[1] = transpose([[0.4,0.5],[0.45,0.55]])
 n.show()
-n.backprop([[0.01],[0.99]],0.001)
+for i in range(1000):
+    n.feedforward()
+    n.backprop([[0.01],[0.99]],5)
 n.show()
