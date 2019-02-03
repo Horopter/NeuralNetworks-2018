@@ -12,29 +12,41 @@ def initMatrix(rows,cols):
 		m.append(initArrZero(cols))
 	return m	
 	
-def sigmoid(x):
-	return 1.0/(1.0 + math.e**(-x))
+def activation(x,fn):
+	if fn == "sigmoid":
+		return 1.0/(1.0 + math.e**(-x))
+	elif fn == "leakyReLU":
+		if x > 0:
+			return x
+		else:
+			return 0.01*x
 	
-def sigmoid_m(x):
+def activate_m(x,fn):
 	if isinstance(x,list):
 		lst = []
 		for i in x:
-			lst.append(sigmoid_m(i))
+			lst.append(activate_m(i,fn))
 		return lst
 	else:
-		return sigmoid(x)
+		return activation(x,fn)
 	
-def sigmoid_prime(x):
-	return sigmoid(x)*(1-sigmoid(x))
-	
-def sigmoid_prime_m(x):
+def activation_prime(x,fn):
+	if fn == "sigmoid":
+		return activation(x)*(1-activation(x))
+	elif fn == "leakyReLU":
+		if x > 0:
+			return 1
+		else:
+			return 0.01
+
+def activate_prime_m(x):
 	if isinstance(x,list):
 		lst = []
 		for i in x:
-			lst.append(sigmoid_prime_m(i))
+			lst.append(activate_prime_m(i))
 		return lst
 	else:
-		return sigmoid_prime(x)
+		return activation_prime(x)
 		
 def transpose(m):
 	return [[m[j][i] for j in range(len(m))] for i in range(len(m[0]))]
