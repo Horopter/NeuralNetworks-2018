@@ -16,10 +16,7 @@ def activation(x,fn):
 	if fn == "activation":
 		return 1 / (1 + np.exp(-x))
 	elif fn == "leakyReLU":
-		if x > 0:
-			return x
-		else:
-			return 0.01*x
+		return np.where(x > 0, x, x*0.01)
 
 def activation_prime(x,fn):
 	if fn == "activation":
@@ -71,16 +68,16 @@ class NN:
 			
 	def feedforward(self):
 		for i in range(0,len(self.layers)-1):
-		    self.layers[i+1] = activation(matmul(self.weights[i],self.layers[i]))
+		    self.layers[i+1] = activation(matmul(self.weights[i],self.layers[i]),"leakyReLU")
 		
 	def backprop(self,actual,alpha):
 	    self.wd = initEmpty(len(self.weights))
 	    self.wdm = initEmpty(len(self.weights))
 	    for i in range(len(self.weights)-1,-1,-1):
 	        if i == len(self.weights)-1:
-	            self.wd[i] = hadamard(subtract(self.layers[-1],actual),activation_prime(matmul(self.weights[-1],self.layers[-2])))
+	            self.wd[i] = hadamard(subtract(self.layers[-1],actual),activation_prime(matmul(self.weights[-1],self.layers[-2]),"leakyReLU"))
 	        else:
-	            self.wd[i] = hadamard(matmul(transpose(self.weights[i+1]),self.wd[i+1]),activation_prime(matmul(self.weights[i],self.layers[i])))
+	            self.wd[i] = hadamard(matmul(transpose(self.weights[i+1]),self.wd[i+1]),activation_prime(matmul(self.weights[i],self.layers[i]),"leakyReLU"))
 	            
 	    for i in range(len(self.weights)-1,-1,-1):
 	        t = transpose(self.layers[i])

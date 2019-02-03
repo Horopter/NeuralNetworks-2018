@@ -32,21 +32,21 @@ def activate_m(x,fn):
 	
 def activation_prime(x,fn):
 	if fn == "sigmoid":
-		return activation(x)*(1-activation(x))
+		return activation(x)*(1-activation(x,fn))
 	elif fn == "leakyReLU":
 		if x > 0:
 			return 1
 		else:
 			return 0.01
 
-def activate_prime_m(x):
+def activate_prime_m(x,fn):
 	if isinstance(x,list):
 		lst = []
 		for i in x:
-			lst.append(activate_prime_m(i))
+			lst.append(activate_prime_m(i,fn))
 		return lst
 	else:
-		return activation_prime(x)
+		return activation_prime(x,fn)
 		
 def transpose(m):
 	return [[m[j][i] for j in range(len(m))] for i in range(len(m[0]))]
@@ -112,7 +112,7 @@ class NN:
 			
 	def feedforward(self):
 		for i in range(0,len(self.layers)-1):
-		    self.layers[i+1] = sigmoid_m(matmul(self.weights[i],self.layers[i]))
+		    self.layers[i+1] = activate_m(matmul(self.weights[i],self.layers[i]),"leakyReLU")
 		
 	def backprop(self,actual,alpha):
 	    self.wd = initArrZero(len(self.weights))
@@ -120,9 +120,9 @@ class NN:
 	    
 	    for i in range(len(self.weights)-1,-1,-1):
 	        if i == len(self.weights)-1:
-	            self.wd[i] = hadamard(subtract(self.layers[-1],actual),sigmoid_prime_m(matmul(self.weights[-1],self.layers[-2])))
+	            self.wd[i] = hadamard(subtract(self.layers[-1],actual),activate_prime_m(matmul(self.weights[-1],self.layers[-2]),"leakyReLU"))
 	        else:
-	            self.wd[i] = hadamard(matmul(transpose(self.weights[i+1]),self.wd[i+1]),sigmoid_prime_m(matmul(self.weights[i],self.layers[i])))
+	            self.wd[i] = hadamard(matmul(transpose(self.weights[i+1]),self.wd[i+1]),activate_prime_m(matmul(self.weights[i],self.layers[i]),"leakyReLU"))
 	            
 	    for i in range(len(self.weights)-1,-1,-1):
 	        t = transpose(self.layers[i])
